@@ -1,0 +1,46 @@
+version: 2
+
+project_name: stockyard-brand-standalone
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: brand
+    main: ./cmd/brand/
+    binary: brand
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{.Version}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - id: brand
+    builds: [brand]
+    name_template: "brand_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: "checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - Merge pull request
