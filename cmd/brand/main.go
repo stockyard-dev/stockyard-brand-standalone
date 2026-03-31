@@ -73,6 +73,7 @@ func main() {
 	log.Printf("  Verify:  GET  http://localhost:%d/api/verify", port)
 	log.Printf("  Export:  GET  http://localhost:%d/api/evidence/export", port)
 	log.Printf("  Health:  GET  http://localhost:%d/health", port)
+	log.Printf("  Dashboard:   http://localhost:%d/ui", port)
 	log.Printf("")
 
 	srv := server.New(db, port, adminKey, limits)
