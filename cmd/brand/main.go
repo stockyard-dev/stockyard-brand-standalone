@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/stockyard-dev/stockyard-brand-standalone/internal/server"
+	"github.com/stockyard-dev/stockyard-brand-standalone/internal/license"
 	"github.com/stockyard-dev/stockyard-brand-standalone/internal/store"
 )
 
@@ -46,6 +47,20 @@ func main() {
 		log.Printf("[brand] BRAND_ADMIN_KEY not set — read/verify endpoints are open")
 	}
 
+	// License validation — offline Ed25519 check, no network call
+	licenseKey := os.Getenv("BRAND_LICENSE_KEY")
+	licInfo, licErr := license.Validate(licenseKey, "brand")
+	if licenseKey != "" && licErr != nil {
+		log.Printf("[license] WARNING: %v — running in free tier", licErr)
+		licInfo = nil
+	}
+	limits := server.LimitsFor(licInfo)
+	if licInfo != nil && licInfo.IsPro() {
+		log.Printf("  License:   Pro (%s)", licInfo.CustomerID)
+	} else {
+		log.Printf("  License:   Free tier (set BRAND_LICENSE_KEY to unlock Pro)")
+	}
+
 	db, err := store.Open(dataDir)
 	if err != nil {
 		log.Fatalf("database: %v", err)
@@ -60,7 +75,7 @@ func main() {
 	log.Printf("  Health:  GET  http://localhost:%d/health", port)
 	log.Printf("")
 
-	srv := server.New(db, port, adminKey)
+	srv := server.New(db, port, adminKey, limits)
 	if err := srv.Start(); err != nil {
 		log.Fatalf("server: %v", err)
 	}

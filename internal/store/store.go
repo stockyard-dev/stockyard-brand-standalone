@@ -482,3 +482,10 @@ func genID(n int) string {
 	rand.Read(b)
 	return hex.EncodeToString(b)
 }
+
+// MonthlyEventCount returns the number of events appended in the current calendar month.
+func (db *DB) MonthlyEventCount() int {
+	var n int
+	db.conn.QueryRow("SELECT COUNT(*) FROM ledger WHERE created_at >= date('now','start of month')").Scan(&n)
+	return n
+}

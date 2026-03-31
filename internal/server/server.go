@@ -21,15 +21,17 @@ type Server struct {
 	port     int
 	adminKey string
 	client   *http.Client
+	limits   Limits
 }
 
-func New(db *store.DB, port int, adminKey string) *Server {
+func New(db *store.DB, port int, adminKey string, limits Limits) *Server {
 	s := &Server{
 		db:       db,
 		mux:      http.NewServeMux(),
 		port:     port,
 		adminKey: adminKey,
 		client:   &http.Client{Timeout: 10 * time.Second},
+		limits:   limits,
 	}
 	s.routes()
 	return s
@@ -119,6 +121,13 @@ func (s *Server) handleAppend(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// On free tier, warn when approaching monthly event limit (soft limit — self-hosted never hard-blocks)
+	if s.limits.MaxEventsPerMonth > 0 {
+		monthTotal := s.db.MonthlyEventCount()
+		if LimitReached(s.limits.MaxEventsPerMonth, monthTotal) {
+			w.Header().Set("X-License-Warning", "free tier event limit reached — upgrade to Pro at https://stockyard.dev/brand/")
+		}
+	}
 	entry, err := s.db.AppendEvent(req.EventType, req.Actor, req.Resource, sourceIP(r), req.Detail)
 	if err != nil {
 		writeJSON(w, 500, map[string]string{"error": err.Error()})
