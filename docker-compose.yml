@@ -1,0 +1,32 @@
+# docker-compose.yml for brand
+# Quick start:
+#   FENCE_ENCRYPTION_KEY=$(openssl rand -hex 32) docker compose up -d
+#
+# For production, set env vars in a .env file or your orchestrator secrets.
+# Never commit real keys to version control.
+
+services:
+  brand:
+    image: ghcr.io/stockyard-dev/stockyard-brand-standalone:latest
+    # Or build locally:
+    # build: .
+    ports:
+      - "8750:8750"
+    environment:
+      - PORT=${{STOCKYARD_PORT:-8750}}
+      - DATA_DIR=${{STOCKYARD_DATA_DIR:-/data}}
+      - BRAND_ADMIN_KEY=${{STOCKYARD_BRAND_ADMIN_KEY:-changeme}}
+      - BRAND_LICENSE_KEY=${{STOCKYARD_BRAND_LICENSE_KEY:-}}
+    volumes:
+      - brand-data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8750/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  brand-data:
+    driver: local
